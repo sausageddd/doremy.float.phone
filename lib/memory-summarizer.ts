@@ -37,7 +37,15 @@ export async function maybeRunSummarization(
     if (!config.autoSummarizeEnabled) return;
 
     const counter = getEventCounter(characterId);
-    if (counter < config.summarizationEventInterval) return;
+    const lastTimestamp = getLastSummarizedTimestamp(characterId);
+    
+    // 检查是否达到条数阈值，或者长时间未回复/未互动（距离上次总结或互动超过 6 小时且有新事件）
+    const hoursSinceLast = lastTimestamp
+        ? (Date.now() - new Date(lastTimestamp).getTime()) / (1000 * 60 * 60)
+        : Infinity;
+    const isTimeExceeded = counter > 0 && hoursSinceLast >= 6;
+
+    if (counter < config.summarizationEventInterval && !isTimeExceeded) return;
 
     if (summarizingSet.has(characterId)) return;
     summarizingSet.add(characterId);
